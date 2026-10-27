@@ -6,7 +6,7 @@ import com.github.dockerjava.core.DefaultDockerClientConfig;
 import com.github.dockerjava.core.DockerClientConfig;
 import com.github.dockerjava.core.DockerClientImpl;
 import com.github.dockerjava.transport.DockerHttpClient;
-import com.github.dockerjava.httpclient5.ApacheDockerHttpClient;
+import com.github.dockerjava.zerodep.ZerodepDockerHttpClient;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,12 +14,17 @@ import java.util.stream.Collectors;
 
 @Service
 public class DockerService {
+
     private final DockerClient dockerClient;
 
-    public DockerService(){
-        DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
+    public DockerService() {
+        // Explicit módon beállítjuk a környezetet, hogy felismerje a Windowst / alapértelmezett socketet
+        DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder()
+                // Windows esetén a Docker Desktop pipe címét is megadhatjuk, ha szükséges:
+                // .withDockerHost("npipe:////./pipe/docker_engine")
+                .build();
 
-        DockerHttpClient httpClient = new ApacheDockerHttpClient.Builder()
+        DockerHttpClient httpClient = new ZerodepDockerHttpClient.Builder()
                 .dockerHost(config.getDockerHost())
                 .sslConfig(config.getSSLConfig())
                 .build();
@@ -28,7 +33,10 @@ public class DockerService {
     }
 
     public List<String> getRunningContainers() {
+        // Egy gyors teszt log, hogy lássuk, eljut-e ide a kérés
+        System.out.println("Lekérdezés indítása a Docker felé...");
         List<Container> containers = dockerClient.listContainersCmd().exec();
+        System.out.println("Lekérdezés kész, konténerek száma: " + containers.size());
 
         return containers.stream()
                 .map(c -> {
@@ -38,12 +46,11 @@ public class DockerService {
                 .collect(Collectors.toList());
     }
 
-
-    public void startContainer(String containerId){
+    public void startContainer(String containerId) {
         dockerClient.startContainerCmd(containerId).exec();
     }
 
-    public void stopContainer(String containerId){
+    public void stopContainer(String containerId) {
         dockerClient.stopContainerCmd(containerId).exec();
     }
 }

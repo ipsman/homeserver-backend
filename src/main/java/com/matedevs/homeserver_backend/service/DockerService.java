@@ -37,4 +37,13 @@ public class DockerService {
                 })
                 .collect(Collectors.toList());
     }
+
+
+    public void startContainer(String containerId){
+        dockerClient.startContainerCmd(containerId).exec();
+    }
+
+    public void stopContainer(String containerId){
+        dockerClient.stopContainerCmd(containerId).exec();
+    }
 }

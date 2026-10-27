@@ -1,9 +1,7 @@
 package com.matedevs.homeserver_backend.controller;
 
 import com.matedevs.homeserver_backend.service.DockerService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -20,6 +18,18 @@ public class DockerController {
     @GetMapping("/containers")
     public List<String> listContainers (){
         return dockerService.getRunningContainers();
+    }
+
+    @PostMapping("/containers/{id}/start")
+    public String startContainer(@PathVariable String id){
+        dockerService.startContainer(id);
+        return "Container " + id + " started successfully.";
+    }
+
+    @PostMapping("/containers/{id}/stop")
+    public String stopContainer(@PathVariable String id){
+        dockerService.stopContainer(id);
+        return "Container " + id + " stopped successfully.";
     }
 
 }

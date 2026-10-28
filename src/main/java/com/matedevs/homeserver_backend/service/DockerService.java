@@ -9,8 +9,10 @@ import com.github.dockerjava.transport.DockerHttpClient;
 import com.github.dockerjava.zerodep.ZerodepDockerHttpClient;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 @Service
 public class DockerService {
@@ -18,9 +20,8 @@ public class DockerService {
     private final DockerClient dockerClient;
 
     public DockerService() {
-        // Explicit módon beállítjuk a környezetet, hogy felismerje a Windowst / alapértelmezett socketet
         DockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder()
-                // Windows esetén a Docker Desktop pipe címét is megadhatjuk, ha szükséges:
+                // Windows esetén, ha pipe-ot használnál:
                 // .withDockerHost("npipe:////./pipe/docker_engine")
                 .build();
 
@@ -32,25 +33,53 @@ public class DockerService {
         this.dockerClient = DockerClientImpl.getInstance(config, httpClient);
     }
 
-    public List<String> getRunningContainers() {
-        // Egy gyors teszt log, hogy lássuk, eljut-e ide a kérés
+    public List<Map<String, Object>> getAllContainers() {
         System.out.println("Lekérdezés indítása a Docker felé...");
-        List<Container> containers = dockerClient.listContainersCmd().exec();
+
+        // .withShowAll(true) -> Így a leállított konténerek is látszanak (docker ps -a)
+        List<Container> containers = dockerClient.listContainersCmd().withShowAll(true).exec();
+
         System.out.println("Lekérdezés kész, konténerek száma: " + containers.size());
 
-        return containers.stream()
-                .map(c -> {
-                    String name = (c.getNames() != null && c.getNames().length > 0) ? c.getNames()[0] : "unknown";
-                    return name + " (" + c.getImage() + ") - " + c.getStatus();
-                })
-                .collect(Collectors.toList());
+        List<Map<String, Object>> containerList = new ArrayList<>();
+
+        for (Container c : containers) {
+            Map<String, Object> containerMap = new HashMap<>();
+
+            // Egyedi ID (ez kell majd a Start/Stop parancsokhoz)
+            containerMap.put("id", c.getId());
+
+            // Név (A Docker tömbben adja vissza, az elsőt tisztítjuk)
+            String name = (c.getNames() != null && c.getNames().length > 0) ? c.getNames()[0] : "unknown";
+            containerMap.put("name", name);
+
+            // Kép neve
+            containerMap.put("image", c.getImage());
+
+            // Státusz szöveg (pl. "Up 2 hours")
+            containerMap.put("status", c.getStatus());
+
+            // Állapot ("running", "exited", stb.)
+            containerMap.put("state", c.getState() != null ? c.getState().toLowerCase() : "unknown");
+
+            containerList.add(containerMap);
+        }
+
+        return containerList;
     }
 
     public void startContainer(String containerId) {
+        System.out.println("Kontindító parancs: " + containerId);
         dockerClient.startContainerCmd(containerId).exec();
     }
 
     public void stopContainer(String containerId) {
+        System.out.println("Konténer leállító parancs: " + containerId);
         dockerClient.stopContainerCmd(containerId).exec();
+    }
+
+    public void restartContainer(String containerId) {
+        System.out.println("Konténer ujraindit parancs: " + containerId);
+        dockerClient.restartContainerCmd(containerId).exec();
     }
 }

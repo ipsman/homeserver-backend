@@ -1,35 +1,38 @@
 package com.matedevs.homeserver_backend.controller;
 
 import com.matedevs.homeserver_backend.service.DockerService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/docker")
+@CrossOrigin(origins = "*")
 public class DockerController {
 
-    private final DockerService dockerService;
-
-    public DockerController(DockerService dockerService){
-        this.dockerService = dockerService;
-    }
+    @Autowired
+    private DockerService dockerService;
 
     @GetMapping("/containers")
-    public List<String> listContainers (){
-        return dockerService.getRunningContainers();
+    public List<Map<String, Object>> getContainers() {
+        return dockerService.getAllContainers();
     }
 
-    @PostMapping("/containers/{id}/start")
-    public String startContainer(@PathVariable String id){
+    @PostMapping("/container/{id}/start")
+    public void startContainer(@PathVariable String id) {
         dockerService.startContainer(id);
-        return "Container " + id + " started successfully.";
     }
 
-    @PostMapping("/containers/{id}/stop")
-    public String stopContainer(@PathVariable String id){
+    @PostMapping("/container/{id}/stop")
+    public void stopContainer(@PathVariable String id) {
         dockerService.stopContainer(id);
-        return "Container " + id + " stopped successfully.";
+    }
+
+    @PostMapping("/container/{id}/restart")
+    public void restartContainer(@PathVariable String id) {
+        dockerService.restartContainer(id);
     }
 
 }

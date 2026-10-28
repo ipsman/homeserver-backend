@@ -7,6 +7,8 @@ import oshi.software.os.FileSystem;
 import oshi.software.os.OperatingSystem;
 import oshi.software.os.OSFileStore;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,8 +39,20 @@ public class SystemStatsService {
         double cpuLoad = processor.getSystemCpuLoad(1000);
         Sensors sensors = hardware.getSensors();
         double cpuTemp = sensors.getCpuTemperature();
+        long[] currentFreqs = processor.getCurrentFreq();
+        double cpuCores = processor.getPhysicalProcessorCount();
+
+        double currentFreqGHz = 0.0;
+        if (currentFreqs != null && currentFreqs.length > 0) {
+            long sum = 0;
+            for (long freq : currentFreqs) {
+                sum += freq;
+            }
+            currentFreqGHz = (double) sum / currentFreqs.length / (1024.0 * 1024.0 * 1024.0);
+        }
 
         String osName = os.getFamily() + " " + os.getVersionInfo();
+        String serverName = os.getNetworkParams().getHostName();
 
 
         long totalSeconds = os.getSystemUptime();
@@ -54,11 +68,18 @@ public class SystemStatsService {
 
         long totalBytesRecv = 0;
         long totalBytesSent = 0;
+        long maxLinkSpeedBps = 0; // Maximális sávszélesség bit/mp-ben
+
         List<NetworkIF> networkIFs = hardware.getNetworkIFs();
         for (NetworkIF net : networkIFs) {
             net.updateAttributes();
             totalBytesRecv += net.getBytesRecv();
             totalBytesSent += net.getBytesSent();
+
+            // Ha a kártya ad vissza érvényes max sebességet, hozzáadjuk
+            if (net.getSpeed() > 0) {
+                maxLinkSpeedBps += net.getSpeed();
+            }
         }
 
         long currentTime = System.currentTimeMillis();
@@ -66,6 +87,7 @@ public class SystemStatsService {
 
         double downloadSpeedKBps = 0.0;
         double uploadSpeedKBps = 0.0;
+        double networkUsagePercent = 0.0;
 
         if (prevBytesRecv != -1 && timeElapsedSeconds > 0) {
             long diffRecv = totalBytesRecv - prevBytesRecv;
@@ -73,6 +95,20 @@ public class SystemStatsService {
 
             if (diffRecv >= 0) downloadSpeedKBps = (diffRecv / timeElapsedSeconds) / 1024.0;
             if (diffSent >= 0) uploadSpeedKBps = (diffSent / timeElapsedSeconds) / 1024.0;
+
+            // --- SZÁZALÉK SZÁMÍTÁS ---
+            // Az összes elküldött + fogadott bájt az utolsó időszeletben
+            long totalBytesDiff = (diffRecv > 0 ? diffRecv : 0) + (diffSent > 0 ? diffSent : 0);
+            double currentBytesPerSec = totalBytesDiff / timeElapsedSeconds;
+            double currentBitsPerSec = currentBytesPerSec * 8; // Bájt -> Bit átváltás
+
+            if (maxLinkSpeedBps > 0) {
+                networkUsagePercent = (currentBitsPerSec / maxLinkSpeedBps) * 100.0;
+                if (networkUsagePercent > 100.0) {
+                    networkUsagePercent = 100.0; // Biztos ami biztos, ne menjen 100% fölé
+                }
+            }
+            // -------------------------
         }
 
         prevBytesRecv = totalBytesRecv;
@@ -106,7 +142,8 @@ public class SystemStatsService {
         }
 
         double cpuUsagePercent = cpuLoad * 100;
-        
+
+        double totalSystemUsage = (cpuUsagePercent * 0.6) + (memoryUsagePercent * 0.4);
 
         Map<String, Object> stats = new HashMap<>();
         stats.put("cpuUsagePercent", Math.round(cpuUsagePercent * 100.0) / 100.0);
@@ -120,7 +157,12 @@ public class SystemStatsService {
         stats.put("cpuTemp", cpuTemp);
         stats.put("storage", storageList);
         stats.put("downloadSpeedKBps", Math.round(downloadSpeedKBps * 100.0) / 100.0);
+        stats.put("networkUsagePercent", Math.round(networkUsagePercent * 100.0) / 100.0);
         stats.put("uploadSpeedKBps", Math.round(uploadSpeedKBps * 100.0) / 100.0);
+        stats.put("Hostname", serverName);
+        stats.put("cpuCurrentFreqGHz", Math.round(currentFreqGHz * 100.0) / 100.0);
+        stats.put("cpuCores", cpuCores);
+        stats.put("totalSystemUsagePercent", Math.round(totalSystemUsage * 100.0) / 100.0);
 
         return stats;
     }

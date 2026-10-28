@@ -9,19 +9,20 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @SpringBootApplication
 public class HomeserverBackendApplication {
 
-    public static void main(String[] args) {
-        SpringApplication.run(HomeserverBackendApplication.class, args);
-    }
+	public static void main(String[] args) {
+		SpringApplication.run(HomeserverBackendApplication.class, args);
+	}
 
-    @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/api/**")
-                        .allowedOrigins("*") // Minden forrást engedélyez fejlesztéshez
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "HEAD");
-            }
-        };
-    }
+	@Bean
+	public WebMvcConfigurer corsConfigurer() {
+		return new WebMvcConfigurer() {
+			@Override
+			public void addCorsMappings(CorsRegistry registry) {
+				registry.addMapping("/**")
+						.allowedOrigins("*")
+						.allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS")
+						.allowedHeaders("*");
+			}
+		};
+	}
 }

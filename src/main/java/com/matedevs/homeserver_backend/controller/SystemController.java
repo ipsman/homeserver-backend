@@ -1,6 +1,7 @@
 package com.matedevs.homeserver_backend.controller;
 
 import com.matedevs.homeserver_backend.service.SystemStatsService;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -8,7 +9,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController // 👈 EZ FONTOS: enélkül a Spring nem látja vezérlőként!
-@RequestMapping("/api/system") // 👈 EZ IS: az útvonal előtagja
+@RequestMapping("/api/system")
+@CrossOrigin(origins = "*")// 👈 EZ IS: az útvonal előtagja
 public class SystemController {
 
     private final SystemStatsService systemStatsService;

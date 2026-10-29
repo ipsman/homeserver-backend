@@ -15,7 +15,7 @@ import java.util.Map;
 @Service
 public class SystemStatsService {
 
-    // Csak a sebességméréshez szükséges időbélyeg és bájtok maradhatnak osztály szintjén
+    // CSAK a sebességméréshez szükséges változók maradhatnak itt!
     private long prevBytesRecv = -1;
     private long prevBytesSent = -1;
     private long prevTime = System.currentTimeMillis();
@@ -24,7 +24,6 @@ public class SystemStatsService {
         Map<String, Object> stats = new HashMap<>();
 
         try {
-            // Minden OSHI inicializálás CSAK ITT, a metódus belsejében történik!
             SystemInfo systemInfo = new SystemInfo();
             HardwareAbstractionLayer hardware = systemInfo.getHardware();
             CentralProcessor processor = hardware.getProcessor();
